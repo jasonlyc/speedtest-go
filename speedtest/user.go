@@ -3,10 +3,9 @@ package speedtest
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	"errors"
 )
 
 // User represents information determined about the caller by speedtest.net
@@ -25,7 +24,7 @@ type Users struct {
 // FetchUserInfo returns information about caller determined by speedtest.net
 func FetchUserInfo() (*User, error) {
 	// Fetch xml user data
-	resp, err := http.Get("http://speedtest.net/speedtest-config.php")
+	resp, err := client.Get("http://speedtest.net/speedtest-config.php")
 	if err != nil {
 		return nil, err
 	}
