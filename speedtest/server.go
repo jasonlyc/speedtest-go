@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"net/http"
 	"sort"
 	"strconv"
 	"time"
@@ -61,7 +60,7 @@ func (b ByDistance) Less(i, j int) bool {
 // FetchServerList retrieves a list of available servers
 func FetchServerList(user *User) (ServerList, error) {
 	// Fetch xml server data
-	resp, err := http.Get("http://www.speedtest.net/speedtest-servers-static.php")
+	resp, err := client.Get("http://www.speedtest.net/speedtest-servers-static.php")
 	if err != nil {
 		return ServerList{}, errors.New("failed to retrieve speedtest servers")
 	}
@@ -72,7 +71,7 @@ func FetchServerList(user *User) (ServerList, error) {
 	defer resp.Body.Close()
 
 	if len(body) == 0 {
-		resp, err = http.Get("http://c.speedtest.net/speedtest-servers-static.php")
+		resp, err = client.Get("http://c.speedtest.net/speedtest-servers-static.php")
 		if err != nil {
 			errors.New("failed to retrieve alternate speedtest servers")
 		}
