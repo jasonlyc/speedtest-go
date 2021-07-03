@@ -17,6 +17,8 @@ var (
 	savingMode = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
 	jsonOutput = kingpin.Flag("json", "Output results in json format").Bool()
 	bindIP     = kingpin.Flag("bind-ip", "Local IP address to bind.").Short('b').IP()
+	noUpload   = kingpin.Flag("no-upload", "Skip upload test").Bool()
+	noDownload = kingpin.Flag("no-download", "Skip download test").Bool()
 )
 
 type fullOutput struct {
@@ -32,6 +34,11 @@ func main() {
 
 	if *bindIP != nil {
 		speedtest.BindIP(*bindIP)
+	}
+
+	if *noUpload && *noDownload {
+		fmt.Fprintf(os.Stderr, "no-upload and no-download should not be specified at the same time.\n")
+		os.Exit(1)
 	}
 
 	user, err := speedtest.FetchUserInfo()
@@ -78,21 +85,29 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 		checkError(err)
 
 		if jsonOutput {
-			err := s.DownloadTest(savingMode)
-			checkError(err)
+			if !*noDownload {
+				err := s.DownloadTest(savingMode)
+				checkError(err)
+			}
 
-			err = s.UploadTest(savingMode)
-			checkError(err)
+			if !*noUpload {
+				err = s.UploadTest(savingMode)
+				checkError(err)
+			}
 
 			continue
 		}
 
 		showLatencyResult(s)
 
-		err = testDownload(s, savingMode)
-		checkError(err)
-		err = testUpload(s, savingMode)
-		checkError(err)
+		if !*noDownload {
+			err = testDownload(s, savingMode)
+			checkError(err)
+		}
+		if !*noUpload {
+			err = testUpload(s, savingMode)
+			checkError(err)
+		}
 
 		showServerResult(s)
 	}
@@ -167,8 +182,12 @@ func showLatencyResult(server *speedtest.Server) {
 func showServerResult(server *speedtest.Server) {
 	fmt.Printf(" \n")
 
-	fmt.Printf("Download: %5.2f Mbit/s\n", server.DLSpeed)
-	fmt.Printf("Upload: %5.2f Mbit/s\n\n", server.ULSpeed)
+	if !*noDownload {
+		fmt.Printf("Download: %5.2f Mbit/s\n", server.DLSpeed)
+	}
+	if !*noUpload {
+		fmt.Printf("Upload: %5.2f Mbit/s\n\n", server.ULSpeed)
+	}
 	valid := server.CheckResultValid()
 	if !valid {
 		fmt.Println("Warning: Result seems to be wrong. Please speedtest again.")
@@ -182,8 +201,12 @@ func showAverageServerResult(servers speedtest.Servers) {
 		avgDL = avgDL + s.DLSpeed
 		avgUL = avgUL + s.ULSpeed
 	}
-	fmt.Printf("Download Avg: %5.2f Mbit/s\n", avgDL/float64(len(servers)))
-	fmt.Printf("Upload Avg: %5.2f Mbit/s\n", avgUL/float64(len(servers)))
+	if !*noDownload {
+		fmt.Printf("Download Avg: %5.2f Mbit/s\n", avgDL/float64(len(servers)))
+	}
+	if !*noUpload {
+		fmt.Printf("Upload Avg: %5.2f Mbit/s\n", avgUL/float64(len(servers)))
+	}
 }
 
 func checkError(err error) {
