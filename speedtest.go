@@ -23,6 +23,9 @@ type fullOutput struct {
 	UserInfo  *speedtest.User   `json:"user_info"`
 	Servers   speedtest.Servers `json:"servers"`
 }
+type serverListOutput struct {
+	Servers   speedtest.Servers `json:"servers"`
+}
 type outputTime time.Time
 
 func main() {
@@ -142,9 +145,20 @@ func showUser(user *speedtest.User) {
 }
 
 func showServerList(serverList speedtest.ServerList) {
-	for _, s := range serverList.Servers {
-		fmt.Printf("[%4s] %8.2fkm ", s.ID, s.Distance)
-		fmt.Printf(s.Name + " (" + s.Country + ") by " + s.Sponsor + "\n")
+	if *jsonOutput {
+		jsonBytes, err := json.Marshal(
+			serverListOutput{
+				Servers:   serverList.Servers,
+			},
+		)
+		checkError(err)
+
+		fmt.Println(string(jsonBytes))
+	} else {
+		for _, s := range serverList.Servers {
+			fmt.Printf("[%4s] %8.2fkm ", s.ID, s.Distance)
+			fmt.Printf(s.Name + " (" + s.Country + ") by " + s.Sponsor + "\n")
+		}
 	}
 }
 
