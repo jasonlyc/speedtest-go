@@ -1,9 +1,7 @@
 package speedtest
 
 import (
-	"io/ioutil"
 	"math"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -11,11 +9,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var dlSizes = [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
-var ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} //kB
-
 // DownloadTest executes the test to measure download speed
-func (s *Server) DownloadTest(savingMode bool) error {
+func (s *Server) DownloadTest() error {
 	sockets, err := GetSockets(s.Host, 10)
 	if err != nil {
 		return err
@@ -60,7 +55,7 @@ func (s *Server) DownloadTest(savingMode bool) error {
 }
 
 // UploadTest executes the test to measure upload speed
-func (s *Server) UploadTest(savingMode bool) error {
+func (s *Server) UploadTest() error {
 	sockets, err := GetSockets(s.Host, 10)
 	if err != nil {
 		return err
@@ -108,64 +103,6 @@ func (s *Server) UploadTest(savingMode bool) error {
 	}
 
 	s.ULSpeed = ulSpeed / 1024 / 1024
-	return nil
-}
-
-func dlWarmUp(dlURL string) error {
-	size := dlSizes[2]
-	xdlURL := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
-
-	resp, err := client.Get(xdlURL)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	ioutil.ReadAll(resp.Body)
-
-	return nil
-}
-
-func ulWarmUp(ulURL string) error {
-	size := ulSizes[4]
-	v := url.Values{}
-	v.Add("content", strings.Repeat("0123456789", size*100-51))
-
-	resp, err := client.PostForm(ulURL, v)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	ioutil.ReadAll(resp.Body)
-
-	return nil
-}
-
-func downloadRequest(dlURL string, w int) error {
-	size := dlSizes[w]
-	xdlURL := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
-
-	resp, err := client.Get(xdlURL)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	ioutil.ReadAll(resp.Body)
-
-	return nil
-}
-
-func uploadRequest(ulURL string, w int) error {
-	size := ulSizes[w]
-	v := url.Values{}
-	v.Add("content", strings.Repeat("0123456789", size*100-51))
-
-	resp, err := client.PostForm(ulURL, v)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	ioutil.ReadAll(resp.Body)
-
 	return nil
 }
 

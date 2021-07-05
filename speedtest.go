@@ -14,7 +14,6 @@ import (
 var (
 	showList   = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
 	serverId   = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Int()
-	savingMode = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
 	jsonOutput = kingpin.Flag("json", "Output results in json format").Bool()
 	bindIP     = kingpin.Flag("bind-ip", "Local IP address to bind.").Short('b').IP()
 	noUpload   = kingpin.Flag("no-upload", "Skip upload test").Bool()
@@ -63,7 +62,7 @@ func main() {
 	targets, err := serverList.FindServer(*serverId)
 	checkError(err)
 
-	startTest(targets, *savingMode, *jsonOutput)
+	startTest(targets, *jsonOutput)
 
 	if *jsonOutput {
 		jsonBytes, err := json.Marshal(
@@ -79,7 +78,7 @@ func main() {
 	}
 }
 
-func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
+func startTest(servers speedtest.Servers, jsonOutput bool) {
 	for _, s := range servers {
 		if !jsonOutput {
 			showServer(s)
@@ -90,12 +89,12 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 
 		if jsonOutput {
 			if !*noDownload {
-				err := s.DownloadTest(savingMode)
+				err := s.DownloadTest()
 				checkError(err)
 			}
 
 			if !*noUpload {
-				err = s.UploadTest(savingMode)
+				err = s.UploadTest()
 				checkError(err)
 			}
 
@@ -105,11 +104,11 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 		showLatencyResult(s)
 
 		if !*noDownload {
-			err = testDownload(s, savingMode)
+			err = testDownload(s)
 			checkError(err)
 		}
 		if !*noUpload {
-			err = testUpload(s, savingMode)
+			err = testUpload(s)
 			checkError(err)
 		}
 
@@ -121,11 +120,11 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 	}
 }
 
-func testDownload(server *speedtest.Server, savingMode bool) error {
+func testDownload(server *speedtest.Server) error {
 	quit := make(chan bool)
 	fmt.Printf("Download Test: ")
 	go dots(quit)
-	err := server.DownloadTest(savingMode)
+	err := server.DownloadTest()
 	quit <- true
 	if err != nil {
 		return err
@@ -134,11 +133,11 @@ func testDownload(server *speedtest.Server, savingMode bool) error {
 	return err
 }
 
-func testUpload(server *speedtest.Server, savingMode bool) error {
+func testUpload(server *speedtest.Server) error {
 	quit := make(chan bool)
 	fmt.Printf("Upload Test: ")
 	go dots(quit)
-	err := server.UploadTest(savingMode)
+	err := server.UploadTest()
 	quit <- true
 	if err != nil {
 		return err
