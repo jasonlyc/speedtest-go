@@ -1,37 +1,35 @@
 package speedtest
 
 import (
-	"bytes"
-	"encoding/xml"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
-	"sort"
 	"strconv"
 	"time"
 )
 
 // Server information
 type Server struct {
-	URL      string        `xml:"url,attr" json:"url"`
-	Lat      string        `xml:"lat,attr" json:"lat"`
-	Lon      string        `xml:"lon,attr" json:"lon"`
+	URL      string        `xml:"url,attr" json:",omitempty"`
+	Lat      string        `xml:"lat,attr" json:"-"`
+	Lon      string        `xml:"lon,attr" json:"-"`
 	Name     string        `xml:"name,attr" json:"name"`
 	Country  string        `xml:"country,attr" json:"country"`
 	Sponsor  string        `xml:"sponsor,attr" json:"sponsor"`
 	ID       string        `xml:"id,attr" json:"id"`
-	URL2     string        `xml:"url2,attr" json:"url_2"`
+	URL2     string        `xml:"url2,attr" json:",omitempty"`
 	Host     string        `xml:"host,attr" json:"host"`
-	Distance float64       `json:"distance"`
-	Latency  time.Duration `json:"latency"`
-	DLSpeed  float64       `json:"dl_speed"`
-	ULSpeed  float64       `json:"ul_speed"`
+	Distance float64       `json:",omitempty"`
+	Latency  time.Duration `json:",omitempty"`
+	DLSpeed  float64       `json:",omitempty"`
+	ULSpeed  float64       `json:",omitempty"`
 }
 
 // ServerList list of Server
 type ServerList struct {
-	Servers []*Server `xml:"servers>server"`
+	Servers []*Server `xml:"servers>server" json:"servers"`
 }
 
 // Servers for sorting servers.
@@ -57,10 +55,14 @@ func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
 }
 
-// FetchServerList retrieves a list of available servers
-func FetchServerList(user *User) (ServerList, error) {
+// FetchServerList retrieves a list of available servers or a specific server if serverId is specified
+func FetchServerList(serverId *int) (ServerList, error) {
 	// Fetch xml server data
-	resp, err := client.Get("http://www.speedtest.net/speedtest-servers-static.php")
+	params := ""
+	if serverId != nil {
+		params = "?serverid=" + strconv.Itoa(*serverId)
+	}
+	resp, err := client.Get("https://cli.speedtest.net/api/cli/config" + params)
 	if err != nil {
 		return ServerList{}, errors.New("failed to retrieve speedtest servers")
 	}
@@ -70,44 +72,15 @@ func FetchServerList(user *User) (ServerList, error) {
 	}
 	defer resp.Body.Close()
 
-	if len(body) == 0 {
-		resp, err = client.Get("http://c.speedtest.net/speedtest-servers-static.php")
-		if err != nil {
-			errors.New("failed to retrieve alternate speedtest servers")
-		}
-		body, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return ServerList{}, errors.New("failed to read response body")
-		}
-		defer resp.Body.Close()
-	}
-
-	// Decode xml
-	decoder := xml.NewDecoder(bytes.NewReader(body))
 	list := ServerList{}
-	for {
-		t, _ := decoder.Token()
-		if t == nil {
-			break
-		}
-		switch se := t.(type) {
-		case xml.StartElement:
-			decoder.DecodeElement(&list, &se)
-		}
+	err = json.Unmarshal(body, &list)
+	if err != nil {
+		return ServerList{}, errors.New("failed to parse response body")
 	}
 
-	// Calculate distance
-	for i := range list.Servers {
-		server := list.Servers[i]
-		sLat, _ := strconv.ParseFloat(server.Lat, 64)
-		sLon, _ := strconv.ParseFloat(server.Lon, 64)
-		uLat, _ := strconv.ParseFloat(user.Lat, 64)
-		uLon, _ := strconv.ParseFloat(user.Lon, 64)
-		server.Distance = distance(sLat, sLon, uLat, uLon)
+	for _, s := range list.Servers {
+		s.URL = "http://" + s.Host + "/speedtest/upload.php"
 	}
-
-	// Sort by distance
-	sort.Sort(ByDistance{list.Servers})
 
 	if len(list.Servers) <= 0 {
 		return list, errors.New("unable to retrieve server list")
@@ -129,19 +102,17 @@ func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
 }
 
 // FindServer finds server by serverID
-func (l *ServerList) FindServer(serverID []int) (Servers, error) {
+func (l *ServerList) FindServer(sid int) (Servers, error) {
 	servers := Servers{}
 
 	if len(l.Servers) <= 0 {
 		return servers, errors.New("no servers available")
 	}
 
-	for _, sid := range serverID {
-		for _, s := range l.Servers {
-			id, _ := strconv.Atoi(s.ID)
-			if sid == id {
-				servers = append(servers, s)
-			}
+	for _, s := range l.Servers {
+		id, _ := strconv.Atoi(s.ID)
+		if sid == id {
+			servers = append(servers, s)
 		}
 	}
 

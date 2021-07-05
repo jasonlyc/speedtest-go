@@ -13,7 +13,7 @@ import (
 
 var (
 	showList   = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
-	serverIds  = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Ints()
+	serverId   = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Int()
 	savingMode = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
 	jsonOutput = kingpin.Flag("json", "Output results in json format").Bool()
 	bindIP     = kingpin.Flag("bind-ip", "Local IP address to bind.").Short('b').IP()
@@ -27,7 +27,7 @@ type fullOutput struct {
 	Servers   speedtest.Servers `json:"servers"`
 }
 type serverListOutput struct {
-	Servers   speedtest.Servers `json:"servers"`
+	Servers speedtest.Servers `json:"servers"`
 }
 type outputTime time.Time
 
@@ -47,19 +47,20 @@ func main() {
 	user, err := speedtest.FetchUserInfo()
 	if err != nil {
 		fmt.Println("Warning: Cannot fetch user information. http://www.speedtest.net/speedtest-config.php is temporarily unavailable.")
-	}
-	if !*jsonOutput {
-		showUser(user)
+	} else {
+		if !*jsonOutput {
+			showUser(user)
+		}
 	}
 
-	serverList, err := speedtest.FetchServerList(user)
+	serverList, err := speedtest.FetchServerList(serverId)
 	checkError(err)
 	if *showList {
 		showServerList(serverList)
 		return
 	}
 
-	targets, err := serverList.FindServer(*serverIds)
+	targets, err := serverList.FindServer(*serverId)
 	checkError(err)
 
 	startTest(targets, *savingMode, *jsonOutput)
@@ -69,7 +70,7 @@ func main() {
 			fullOutput{
 				Timestamp: outputTime(time.Now()),
 				UserInfo:  user,
-				Servers:   targets,
+				Servers:   serverList.Servers,
 			},
 		)
 		checkError(err)
@@ -168,7 +169,7 @@ func showServerList(serverList speedtest.ServerList) {
 	if *jsonOutput {
 		jsonBytes, err := json.Marshal(
 			serverListOutput{
-				Servers:   serverList.Servers,
+				Servers: serverList.Servers,
 			},
 		)
 		checkError(err)
