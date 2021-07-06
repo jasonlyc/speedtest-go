@@ -1,6 +1,7 @@
 package speedtest
 
 import (
+	"errors"
 	"math"
 	"strconv"
 	"strings"
@@ -15,6 +16,9 @@ func (s *Server) DownloadTest() error {
 	if err != nil {
 		return err
 	}
+	if len(sockets) == 0 {
+		return errors.New("Failed to do download test, unabled to connect " + s.Host)
+	}
 	eg := errgroup.Group{}
 	stats := make([]float64, len(sockets))
 	for i, socket := range sockets {
@@ -24,12 +28,12 @@ func (s *Server) DownloadTest() error {
 			duration := time.Duration(1e10)
 			test := time.Duration(7e9)
 			warmup := time.Duration(3e9)
-			content := make([]byte, 4096)
+			content := make([]byte, 65536)
 			count := int64(0)
 			t1 := time.Now()
 			t2 := time.Now()
 			for t2.Sub(t1) < duration {
-				s.Write([]byte("DOWNLOAD 4096\n"))
+				s.Write([]byte("DOWNLOAD 65536\n"))
 				length, err := s.Read(content)
 				if err == nil && t2.Sub(t1) > warmup {
 					count += int64(length) + (int64)(math.Ceil(float64(length/1460)))*54 // 40 bytes L3 + L4 header and 14 bytes L2 header
@@ -60,10 +64,13 @@ func (s *Server) UploadTest() error {
 	if err != nil {
 		return err
 	}
+	if len(sockets) == 0 {
+		return errors.New("Failed to do upload test, unabled to connect " + s.Host)
+	}
 	eg := errgroup.Group{}
 	stats := make([]float64, len(sockets))
-	msg := []byte("UPLOAD 4096\n")
-	content := []byte(strings.Repeat("1", 4096-len(msg)-1) + "\n")
+	line1 := "UPLOAD 65536 0\n"
+	msg := []byte(line1 + strings.Repeat("1", 65536-len(line1)-1) + "\n")
 
 	for i, socket := range sockets {
 		index := i
@@ -78,12 +85,11 @@ func (s *Server) UploadTest() error {
 			t2 := time.Now()
 			for t2.Sub(t1) < duration {
 				s.Write(msg)
-				s.Write(content)
 				length, err := s.Read(response)
 				if err == nil && t2.Sub(t1) > warmup {
 					bytes, err := strconv.ParseInt(strings.Split(string(response)[:length], " ")[1], 10, 64)
 					if err == nil {
-						count += bytes + (int64)(math.Ceil(float64(len(content)/1460)))*54
+						count += bytes + (int64)(math.Ceil(float64(len(msg)/1460)))*54
 					}
 				}
 				t2 = time.Now()
@@ -111,6 +117,9 @@ func (s *Server) PingTest() error {
 	sockets, err := GetSockets(s.Host, 1)
 	if err != nil {
 		return err
+	}
+	if len(sockets) == 0 {
+		return errors.New("Failed to do latency test, unabled to connect " + s.Host)
 	}
 	socket := sockets[0]
 	total := int64(0)
