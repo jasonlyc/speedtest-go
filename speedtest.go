@@ -69,7 +69,7 @@ func main() {
 			fullOutput{
 				Timestamp: outputTime(time.Now()),
 				UserInfo:  user,
-				Servers:   serverList.Servers,
+				Servers:   targets,
 			},
 		)
 		checkError(err)
@@ -189,7 +189,7 @@ func showServer(s *speedtest.Server) {
 }
 
 func showLatencyResult(server *speedtest.Server) {
-	fmt.Println("Latency:", server.Latency)
+	fmt.Printf("Latency: %5.2f ms\n", server.Latency)
 }
 
 // ShowResult : show testing result

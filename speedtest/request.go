@@ -36,7 +36,7 @@ func (s *Server) DownloadTest() error {
 				s.Write([]byte("DOWNLOAD 65536\n"))
 				length, err := s.Read(content)
 				if err == nil && t2.Sub(t1) > warmup {
-					count += int64(length) + (int64)(math.Ceil(float64(length/1460)))*54 // 40 bytes L3 + L4 header and 14 bytes L2 header
+					count += int64(length) + (int64(math.Ceil(float64(length/1460))))*54 // 40 bytes L3 + L4 header and 14 bytes L2 header
 				}
 				t2 = time.Now()
 			}
@@ -89,7 +89,7 @@ func (s *Server) UploadTest() error {
 				if err == nil && t2.Sub(t1) > warmup {
 					bytes, err := strconv.ParseInt(strings.Split(string(response)[:length], " ")[1], 10, 64)
 					if err == nil {
-						count += bytes + (int64)(math.Ceil(float64(len(msg)/1460)))*54
+						count += bytes + (int64(math.Ceil(float64(len(msg)/1460))))*54
 					}
 				}
 				t2 = time.Now()
@@ -137,7 +137,7 @@ func (s *Server) PingTest() error {
 		}
 	}
 	if count > 0 {
-		s.Latency = time.Duration(total / count)
+		s.Latency = float64(time.Duration(total/count).Nanoseconds()) / 1e6
 	}
 	CloseSockets(sockets)
 	return nil

@@ -136,7 +136,7 @@ func main() {
 		s.DownloadTest(false)
 		s.UploadTest(false)
 
-		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
+		fmt.Printf("Latency: %f, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
 	}
 }
 ```

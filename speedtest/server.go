@@ -5,26 +5,22 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"strconv"
-	"time"
 )
 
 // Server information
 type Server struct {
-	URL      string        `xml:"url,attr" json:",omitempty"`
-	Lat      string        `xml:"lat,attr" json:"-"`
-	Lon      string        `xml:"lon,attr" json:"-"`
-	Name     string        `xml:"name,attr" json:"name"`
-	Country  string        `xml:"country,attr" json:"country"`
-	Sponsor  string        `xml:"sponsor,attr" json:"sponsor"`
-	ID       string        `xml:"id,attr" json:"id"`
-	URL2     string        `xml:"url2,attr" json:",omitempty"`
-	Host     string        `xml:"host,attr" json:"host"`
-	Distance float64       `json:",omitempty"`
-	Latency  time.Duration `json:",omitempty"`
-	DLSpeed  float64       `json:",omitempty"`
-	ULSpeed  float64       `json:",omitempty"`
+	URL     string  `xml:"url,attr" json:",omitempty"`
+	Lat     string  `xml:"lat,attr" json:"-"`
+	Lon     string  `xml:"lon,attr" json:"-"`
+	Name    string  `xml:"name,attr" json:"name"`
+	Country string  `xml:"country,attr" json:"country"`
+	Sponsor string  `xml:"sponsor,attr" json:"sponsor"`
+	ID      string  `xml:"id,attr" json:"id"`
+	Host    string  `xml:"host,attr" json:"host"`
+	Latency float64 `json:"latency,omitempty"`
+	DLSpeed float64 `json:"dl_speed,omitempty"`
+	ULSpeed float64 `json:"ul_speed,omitempty"`
 }
 
 // ServerList list of Server
@@ -34,26 +30,6 @@ type ServerList struct {
 
 // Servers for sorting servers.
 type Servers []*Server
-
-// ByDistance for sorting servers.
-type ByDistance struct {
-	Servers
-}
-
-// Len finds length of servers. For sorting servers.
-func (svrs Servers) Len() int {
-	return len(svrs)
-}
-
-// Swap swaps i-th and j-th. For sorting servers.
-func (svrs Servers) Swap(i, j int) {
-	svrs[i], svrs[j] = svrs[j], svrs[i]
-}
-
-// Less compares the distance. For sorting servers.
-func (b ByDistance) Less(i, j int) bool {
-	return b.Servers[i].Distance < b.Servers[j].Distance
-}
 
 // FetchServerList retrieves a list of available servers or a specific server if serverId is specified
 func FetchServerList(serverId *int) (ServerList, error) {
@@ -89,18 +65,6 @@ func FetchServerList(serverId *int) (ServerList, error) {
 	return list, nil
 }
 
-func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
-	radius := 6378.137
-
-	a1 := lat1 * math.Pi / 180.0
-	b1 := lon1 * math.Pi / 180.0
-	a2 := lat2 * math.Pi / 180.0
-	b2 := lon2 * math.Pi / 180.0
-
-	x := math.Sin(a1)*math.Sin(a2) + math.Cos(a1)*math.Cos(a2)*math.Cos(b2-b1)
-	return radius * math.Acos(x)
-}
-
 // FindServer finds server by serverID
 func (l *ServerList) FindServer(sid int) (Servers, error) {
 	servers := Servers{}
@@ -134,7 +98,7 @@ func (l *ServerList) String() string {
 
 // String representation of Server
 func (s *Server) String() string {
-	return fmt.Sprintf("[%4s] %8.2fkm \n%s (%s) by %s\n", s.ID, s.Distance, s.Name, s.Country, s.Sponsor)
+	return fmt.Sprintf("[%4s] \n%s (%s) by %s\n", s.ID, s.Name, s.Country, s.Sponsor)
 }
 
 // CheckResultValid checks that results are logical given UL and DL speeds
