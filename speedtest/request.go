@@ -124,11 +124,11 @@ func (s *Server) PingTest() error {
 	socket := sockets[0]
 	total := int64(0)
 	count := int64(0)
-	for i := 0; i < 10; i++ {
+	result := make([]byte, 40)
+	for i := 0; i < 5; i++ {
 		t1 := time.Now().UnixNano()
 		str := "PING " + strconv.FormatInt(t1, 10) + "\n"
 		socket.Write([]byte(str))
-		result := make([]byte, 40)
 		_, err := socket.Read(result)
 		if err == nil {
 			t2 := time.Now().UnixNano()

@@ -59,7 +59,7 @@ func main() {
 		return
 	}
 
-	targets, err := serverList.FindServer(*serverId)
+	targets, err := serverList.FindServer(serverId)
 	checkError(err)
 
 	startTest(targets, *jsonOutput)
@@ -176,8 +176,7 @@ func showServerList(serverList speedtest.ServerList) {
 		fmt.Println(string(jsonBytes))
 	} else {
 		for _, s := range serverList.Servers {
-			fmt.Printf("[%4s] ", s.ID)
-			fmt.Printf(s.Name + " (" + s.Country + ") by " + s.Sponsor + "\n")
+			fmt.Printf("[%4s] %s (%s) by %s, latency: %.2f ms\n", s.ID, s.Name, s.Country, s.Sponsor, s.Latency)
 		}
 	}
 }
@@ -189,7 +188,7 @@ func showServer(s *speedtest.Server) {
 }
 
 func showLatencyResult(server *speedtest.Server) {
-	fmt.Printf("Latency: %5.2f ms\n", server.Latency)
+	fmt.Printf("Latency: %.2f ms\n", server.Latency)
 }
 
 // ShowResult : show testing result
@@ -197,10 +196,10 @@ func showServerResult(server *speedtest.Server) {
 	fmt.Printf(" \n")
 
 	if !*noDownload {
-		fmt.Printf("Download: %5.2f Mbit/s\n", server.DLSpeed)
+		fmt.Printf("Download: %.2f Mbit/s\n", server.DLSpeed)
 	}
 	if !*noUpload {
-		fmt.Printf("Upload: %5.2f Mbit/s\n\n", server.ULSpeed)
+		fmt.Printf("Upload: %.2f Mbit/s\n\n", server.ULSpeed)
 	}
 	valid := server.CheckResultValid()
 	if !valid {
@@ -216,10 +215,10 @@ func showAverageServerResult(servers speedtest.Servers) {
 		avgUL = avgUL + s.ULSpeed
 	}
 	if !*noDownload {
-		fmt.Printf("Download Avg: %5.2f Mbit/s\n", avgDL/float64(len(servers)))
+		fmt.Printf("Download Avg: %.2f Mbit/s\n", avgDL/float64(len(servers)))
 	}
 	if !*noUpload {
-		fmt.Printf("Upload Avg: %5.2f Mbit/s\n", avgUL/float64(len(servers)))
+		fmt.Printf("Upload Avg: %.2f Mbit/s\n", avgUL/float64(len(servers)))
 	}
 }
 

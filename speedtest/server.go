@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"sort"
 	"strconv"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // Server information
@@ -31,6 +34,22 @@ type ServerList struct {
 // Servers for sorting servers.
 type Servers []*Server
 
+type ByLatency struct {
+	Servers
+}
+
+func (servers Servers) Len() int {
+	return len(servers)
+}
+
+func (servers Servers) Swap(i, j int) {
+	servers[i], servers[j] = servers[j], servers[i]
+}
+
+func (l ByLatency) Less(i, j int) bool {
+	return l.Servers[i].Latency > 0 && l.Servers[j].Latency > 0 && l.Servers[i].Latency < l.Servers[j].Latency
+}
+
 // FetchServerList retrieves a list of available servers or a specific server if serverId is specified
 func FetchServerList(serverId *int) (ServerList, error) {
 	// Fetch xml server data
@@ -54,19 +73,34 @@ func FetchServerList(serverId *int) (ServerList, error) {
 		return ServerList{}, errors.New("failed to parse response body")
 	}
 
-	for _, s := range list.Servers {
-		s.URL = "http://" + s.Host + "/speedtest/upload.php"
+	eg := errgroup.Group{}
+
+	for i, _ := range list.Servers {
+		s := list.Servers[i]
+		eg.Go(func() error {
+			s.URL = "http://" + s.Host + "/speedtest/upload.php"
+			err := s.PingTest()
+			if err != nil {
+				s.Latency = -1
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return list, err
 	}
 
 	if len(list.Servers) <= 0 {
 		return list, errors.New("unable to retrieve server list")
 	}
 
+	sort.Sort(ByLatency{list.Servers})
+
 	return list, nil
 }
 
 // FindServer finds server by serverID
-func (l *ServerList) FindServer(sid int) (Servers, error) {
+func (l *ServerList) FindServer(sid *int) (Servers, error) {
 	servers := Servers{}
 
 	if len(l.Servers) <= 0 {
@@ -75,7 +109,7 @@ func (l *ServerList) FindServer(sid int) (Servers, error) {
 
 	for _, s := range l.Servers {
 		id, _ := strconv.Atoi(s.ID)
-		if sid == id {
+		if *sid == id {
 			servers = append(servers, s)
 		}
 	}
