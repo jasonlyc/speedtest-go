@@ -12,12 +12,12 @@ import (
 )
 
 var (
-	showList   = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
-	serverId   = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Int()
-	jsonOutput = kingpin.Flag("json", "Output results in json format").Bool()
-	bindIP     = kingpin.Flag("bind-ip", "Local IP address to bind.").Short('b').IP()
-	noUpload   = kingpin.Flag("no-upload", "Skip upload test").Bool()
-	noDownload = kingpin.Flag("no-download", "Skip download test").Bool()
+	showList   = kingpin.Flag("list", "Show available speedtest.net servers.").Hidden().Short('l').Bool()
+	serverId   = kingpin.Flag("server", "Select server id to speedtest.").Hidden().Short('s').Int()
+	jsonOutput = kingpin.Flag("json", "Output results in json format").Hidden().Bool()
+	bindIP     = kingpin.Flag("bind-ip", "Local IP address to bind.").Hidden().Short('b').IP()
+	noUpload   = kingpin.Flag("no-upload", "Skip upload test").Hidden().Bool()
+	noDownload = kingpin.Flag("no-download", "Skip download test").Hidden().Bool()
 )
 
 type fullOutput struct {
